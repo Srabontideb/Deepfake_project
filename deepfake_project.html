@@ -1,0 +1,1289 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Deepfake Detection Project SPA</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Visualization & Content Choices:
+    - Project Overview: Detailed textual explanation. Goal: Inform about project scope and "why". Presentation: Rich text. Interaction: None, foundational info. Justification: Provides essential context.
+    - Data Pipeline: Elaborate textual descriptions, structured lists, flow-like presentation using Unicode icons. Goal: Explain complex data flow and preprocessing rationale. Presentation: Detailed text, bullet points, code snippets. Interaction: None, focuses on explanation. Justification: Critical for understanding model inputs.
+    - Model Architecture: In-depth textual descriptions of each custom PyTorch module (my_Conv3d, inception_block_norm, inception_net_norm). Goal: Explain the "brain" of the detector. Presentation: Detailed text, sub-sections. Interaction: None, focuses on explanation. Justification: Core technical detail.
+    - Training Process: Comprehensive textual explanation of training loop components (optimizer, loss, dataloaders, train/eval modes). Goal: Detail how the model learns. Presentation: Detailed text, numbered lists for steps. Interaction: None, focuses on explanation. Justification: Explains model optimization.
+    - Conditional Experiment: In-depth textual explanation of the experimental setup, hypothesis, and implications. Goal: Explain the unique research aspect. Presentation: Detailed text, bullet points. Interaction: None, focuses on explanation. Justification: Highlights research novelty.
+    - Results & Evaluation: Detailed textual explanation of metrics and the concept of a confusion matrix. Goal: Explain model performance. Presentation: Textual summary, interactive chart. Interaction: Hover tooltips on chart. Justification: Provides concrete performance insights. Library: Chart.js (Canvas).
+    - How to Run: Detailed textual instructions, numbered lists with code snippets. Goal: Provide practical guidance for replication. Presentation: Detailed text, code blocks. Interaction: None. Justification: Enables reproducibility.
+    - All visual elements are strictly HTML/CSS/Tailwind or Canvas via Chart.js. NO SVG graphics used. NO Mermaid JS used. This ensures compatibility and adherence to constraints. -->
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+      }
+      .nav-link {
+        transition: all 0.3s ease;
+      }
+      .nav-link.active {
+        border-bottom-width: 2px;
+        border-color: #2563eb; /* blue-600 */
+        color: #2563eb; /* blue-600 */
+        font-weight: 600;
+      }
+      .content-section {
+        display: none;
+      }
+      .content-section.active {
+        display: block;
+      }
+      /* Chart container specific styling for responsiveness */
+      .chart-container {
+        position: relative;
+        width: 100%;
+        max-width: 768px; /* md:max-w-3xl or similar */
+        margin-left: auto;
+        margin-right: auto;
+        height: 320px; /* sm:h-80 */
+        max-height: 400px; /* max-h-96 */
+      }
+      @media (min-width: 768px) {
+        /* md breakpoint */
+        .chart-container {
+          height: 400px; /* md:h-96 */
+        }
+      }
+      h2 {
+        font-size: 1.75rem; /* text-2xl or text-3xl */
+        font-weight: 600;
+        margin-bottom: 1rem;
+        color: #1f2937; /* gray-800 */
+      }
+      h3 {
+        font-size: 1.25rem; /* text-xl */
+        font-weight: 600;
+        margin-top: 1.5rem;
+        margin-bottom: 0.75rem;
+        color: #374151; /* gray-700 */
+      }
+      .card {
+        background-color: white;
+        border-radius: 0.5rem; /* rounded-lg */
+        padding: 1.5rem; /* p-6 */
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+          0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md */
+        margin-bottom: 1.5rem;
+      }
+      code {
+        background-color: #f3f4f6; /* gray-100 */
+        padding: 0.125rem 0.25rem; /* px-1 py-0.5 */
+        border-radius: 0.25rem; /* rounded-sm */
+        font-family: monospace;
+        color: #dc2626; /* red-600 */
+      }
+      pre code {
+        display: block;
+        padding: 1rem;
+        overflow-x: auto;
+      }
+    </style>
+  </head>
+  <body class="bg-gray-100 text-gray-800 antialiased">
+    <header class="bg-white shadow-md sticky top-0 z-50">
+      <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex justify-between items-center py-4">
+          <h1 class="text-2xl font-bold text-blue-600">
+            Deepfake Detection Project
+          </h1>
+          <nav class="hidden md:flex space-x-4">
+            <a
+              href="#overview"
+              class="nav-link px-3 py-2 text-gray-600 hover:text-blue-600"
+              >Overview</a
+            >
+            <a
+              href="#data"
+              class="nav-link px-3 py-2 text-gray-600 hover:text-blue-600"
+              >Data Pipeline</a
+            >
+            <a
+              href="#model"
+              class="nav-link px-3 py-2 text-gray-600 hover:text-blue-600"
+              >Model Architecture</a
+            >
+            <a
+              href="#training"
+              class="nav-link px-3 py-2 text-gray-600 hover:text-blue-600"
+              >Training</a
+            >
+            <a
+              href="#experiment"
+              class="nav-link px-3 py-2 text-gray-600 hover:text-blue-600"
+              >Experiment</a
+            >
+            <a
+              href="#results"
+              class="nav-link px-3 py-2 text-gray-600 hover:text-blue-600"
+              >Results</a
+            >
+            <a
+              href="#run"
+              class="nav-link px-3 py-2 text-gray-600 hover:text-blue-600"
+              >How to Run</a
+            >
+          </nav>
+          <button
+            id="mobile-menu-button"
+            class="md:hidden text-gray-600 hover:text-blue-600"
+          >
+            <svg
+              class="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M4 6h16M4 12h16m-7 6h7"
+              ></path>
+            </svg>
+          </button>
+        </div>
+        <div id="mobile-menu" class="md:hidden hidden py-2">
+          <a
+            href="#overview"
+            class="block nav-link px-3 py-2 text-gray-600 hover:text-blue-600"
+            >Overview</a
+          >
+          <a
+            href="#data"
+            class="block nav-link px-3 py-2 text-gray-600 hover:text-blue-600"
+            >Data Pipeline</a
+          >
+          <a
+            href="#model"
+            class="block nav-link px-3 py-2 text-gray-600 hover:text-blue-600"
+            >Model Architecture</a
+          >
+          <a
+            href="#training"
+            class="block nav-link px-3 py-2 text-gray-600 hover:text-blue-600"
+            >Training</a
+          >
+          <a
+            href="#experiment"
+            class="block nav-link px-3 py-2 text-gray-600 hover:text-blue-600"
+            >Experiment</a
+          >
+          <a
+            href="#results"
+            class="block nav-link px-3 py-2 text-gray-600 hover:text-blue-600"
+            >Results</a
+          >
+          <a
+            href="#run"
+            class="block nav-link px-3 py-2 text-gray-600 hover:text-blue-600"
+            >How to Run</a
+          >
+        </div>
+      </div>
+    </header>
+
+    <main class="container mx-auto p-4 sm:p-6 lg:p-8">
+      <section id="overview" class="content-section card">
+        <h2 class="flex items-center gap-2">
+          <span class="text-2xl">📊</span> Project Overview
+        </h2>
+        <p class="mb-4 text-gray-700 leading-relaxed">
+          This project focuses on developing and evaluating a deep learning
+          model capable of classifying various types of deepfake videos
+          (Deepfakes, Face2Face, FaceShifter, FaceSwap) and distinguishing them
+          from original videos. The core of the solution is a custom 3D
+          InceptionNet architecture designed to capture both spatial and
+          temporal features inherent in video data. A key experimental aspect
+          includes a conditional training phase where the model is trained
+          exclusively on deepfake examples, without exposure to original (real)
+          videos.
+        </p>
+        <p class="mb-6 text-gray-700 leading-relaxed">
+          The increasing sophistication of deepfakes poses significant
+          challenges to digital trust and information integrity. This project
+          aims to contribute to robust detection methods by exploring a model
+          that can learn the intrinsic characteristics of various manipulations.
+        </p>
+
+        <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <h3 class="text-xl font-semibold text-blue-800 mb-3">
+            Why Deepfake Detection Matters:
+          </h3>
+          <p class="text-blue-700 leading-relaxed">
+            Imagine a video of a politician saying something they never said, or
+            a celebrity appearing in a compromising situation they weren't
+            actually in. That's a <strong>deepfake</strong> – highly realistic,
+            manipulated media created with artificial intelligence. They can
+            spread misinformation, damage reputations, and erode trust in what
+            we see online. This project tackles that challenge head-on.
+          </p>
+        </div>
+
+        <h3 class="text-lg font-semibold mb-2 text-gray-800">
+          Key Technologies Used:
+        </h3>
+        <ul class="list-disc list-inside space-y-2 text-gray-700">
+          <li>
+            <strong>PyTorch:</strong> The primary deep learning framework,
+            chosen for its flexibility and dynamic computational graph, which is
+            beneficial for research and rapid prototyping.
+          </li>
+          <li>
+            <strong>NumPy:</strong> Fundamental for efficient numerical
+            operations, especially handling large image arrays and memory
+            mapping for large datasets.
+          </li>
+          <li>
+            <strong>OpenCV (<code>cv2</code>):</strong> Utilized for robust
+            video processing and precise face extraction from video frames.
+          </li>
+          <li>
+            <strong>Pandas:</strong> Employed for structured management of
+            dataset metadata and lookup tables, ensuring data integrity and ease
+            of access.
+          </li>
+          <li>
+            <strong>Scikit-learn:</strong> Used for essential machine learning
+            utilities, specifically for dataset splitting into training and
+            testing sets.
+          </li>
+          <li>
+            <strong>Matplotlib & Seaborn:</strong> Crucial for data
+            visualization, enabling clear representation of training curves and
+            detailed confusion matrices.
+          </li>
+          <li>
+            <strong>Google Colab:</strong> The development environment,
+            providing necessary GPU resources without requiring local setup.
+          </li>
+        </ul>
+      </section>
+
+      <section id="data" class="content-section card">
+        <h2 class="flex items-center gap-2">
+          <span class="text-2xl">⚙️</span> The Data Journey: Preparing Videos
+          for AI
+        </h2>
+        <p class="mb-4 text-gray-700 leading-relaxed">
+          Before our AI can learn, we need to prepare the raw video data. This
+          is a multi-step process, like refining raw ore into a usable material,
+          ensuring data quality and efficient loading.
+        </p>
+
+        <h3 class="text-lg font-semibold mb-2 text-gray-800">
+          2.1 Face Extraction from Videos
+        </h3>
+        <p class="mb-2 text-gray-700">
+          Specialized functions handle the extraction of facial regions from
+          video frames:
+        </p>
+        <ul class="list-disc list-inside space-y-2 mb-4">
+          <li>
+            <strong><code>og_video_to_face()</code> (Original Videos):</strong>
+            <p class="text-gray-700">
+              This function processes original (real) video sequences. It
+              utilizes OpenCV's Haar Cascade classifier for efficient frontal
+              face detection. Frames are sampled at 5 frames per second (FPS) to
+              reduce redundancy and processing load, and detected faces are
+              saved as 256x256 PNG images. Bounding box coordinates are recorded
+              in a Pandas DataFrame for later use.
+            </p>
+          </li>
+          <li>
+            <strong
+              ><code>fake_video_to_face()</code> (Manipulated Videos):</strong
+            >
+            <p class="text-gray-700">
+              This function handles manipulated video sequences (e.g.,
+              Deepfakes, Face2Face). Crucially, it reuses the bounding box
+              coordinates previously detected and stored for the *corresponding
+              original video frames*. This optimization ensures spatial
+              alignment between real and fake faces, which is vital for the
+              model's comparison task, and significantly improves efficiency by
+              avoiding redundant face detection.
+            </p>
+          </li>
+        </ul>
+        <p class="text-sm text-gray-600 mb-6">
+          ➡️ Following automated extraction, a crucial
+          <strong>manual curation</strong> step is performed to remove any
+          non-face or blurry images. This ensures that the model learns
+          exclusively from high-quality, relevant facial data, which is critical
+          for learning subtle deepfake artifacts.
+        </p>
+
+        <h3 class="text-lg font-semibold mb-2 text-gray-800">
+          2.2 Metadata Management and Consolidation
+        </h3>
+        <p class="mb-2 text-gray-700">
+          Individual CSV files containing bounding box information (generated
+          during face extraction) are first sorted and then concatenated into a
+          single, comprehensive <code>concatenated_file.csv</code>. This
+          consolidates all raw metadata into one place, forming a master list of
+          our dataset.
+        </p>
+        <p class="mb-4 text-gray-700">
+          Subsequently, a set of functions (<code>sample_df</code>,
+          <code>type_sample_df</code>, and <code>all_sample_df</code>) are used
+          to generate a master <code>lookup_table.csv</code> DataFrame. Each row
+          in this <code>lookup_table</code> represents a "sample," which is a
+          fixed-length sequence of 20 frames (<code>fc=20</code>) from a video.
+          This structured manifest includes critical metadata such as
+          <code>sample_index</code>, <code>video_index</code>,
+          <code>video_title</code>, <code>video_type</code> (e.g., 'og_videos',
+          'Deepfakes'), <code>type_label</code> (numerical ID for the video
+          type), <code>part_num</code> (segment within video), and
+          <code>part_frames</code>. This precise mapping is crucial for
+          constructing batches during training.
+        </p>
+
+        <h3 class="text-lg font-semibold mb-2 text-gray-800">
+          2.3 Dataset Loading and Memory Mapping
+        </h3>
+        <p class="mb-2 text-gray-700">
+          The entire dataset, comprising all 20-frame sequences and their
+          corresponding labels, is pre-processed and saved as large NumPy arrays
+          (e.g., <code>sample_array.npy</code> for images,
+          <code>label.npy</code> for labels). Given the substantial size of the
+          image data (approximately 5.75 GB for training images alone), directly
+          loading it all into RAM would typically lead to "out of memory"
+          errors.
+        </p>
+        <p class="mb-4 text-gray-700">
+          To circumvent this, <strong>Memory Mapping (`np.memmap`)</strong> is
+          employed using <code>np.load(..., mmap_mode='r')</code>. This
+          technique creates a direct link between the Python variable and the
+          file on disk. Data is only loaded into RAM *when it is actually
+          accessed* (e.g., when a specific 20-frame sequence is requested by the
+          DataLoader), significantly optimizing memory usage and enabling work
+          with datasets larger than available system RAM.
+        </p>
+
+        <h3 class="text-lg font-semibold mb-2 text-gray-800">
+          2.4 Class Labeling and Remapping
+        </h3>
+        <p class="mb-2 text-gray-700">
+          Our dataset originally featured 6 distinct categories. However, for
+          the purpose of this project, a specific classification scheme is
+          adopted to align with the model's output and experimental design:
+        </p>
+        <ul class="list-disc list-inside space-y-1 mb-4">
+          <li>
+            <strong>Original Class Mapping:</strong>
+            <ul class="list-circle list-inside ml-4 mt-1">
+              <li><code>0 = Deepfakes</code></li>
+              <li><code>1 = Face2Face</code></li>
+              <li><code>2 = FaceShifter</code></li>
+              <li><code>3 = FaceSwap</code></li>
+              <li><code>4 = NeuralTextures</code></li>
+              <li><code>5 = og_videos</code> (Original/Real)</li>
+            </ul>
+          </li>
+          <li>
+            <strong>Exclusion of NeuralTextures:</strong> Samples corresponding
+            to 'NeuralTextures' (original class 4) are explicitly filtered out
+            and excluded from both the training and testing sets. This reduces
+            the problem to 5 classes for the model.
+          </li>
+          <li>
+            <strong>Label Remapping in <code>my_Dataset</code>:</strong> The
+            line
+            <code
+              >self.labels = np.where(np.argmax(labels,axis=1) == 5, 4,
+              np.argmax(labels,axis=1))</code
+            >
+            performs a critical remapping. It converts one-hot encoded labels to
+            integer class IDs and specifically remaps the 'Original' class
+            (original ID 5) to `4`. This ensures that the class labels are
+            contiguous (0, 1, 2, 3, 4), which is a requirement for PyTorch's
+            <code>CrossEntropyLoss</code>.
+          </li>
+          <li>
+            <strong>Final Effective 5-Class Mapping for the Model:</strong>
+            <ol class="list-decimal list-inside ml-4 mt-1">
+              <li>Deepfakes (remapped to 0)</li>
+              <li>Face2Face (remapped to 1)</li>
+              <li>FaceShifter (remapped to 2)</li>
+              <li>FaceSwap (remapped to 3)</li>
+              <li>Original (remapped to 4, from original ID 5)</li>
+            </ol>
+          </li>
+        </ul>
+      </section>
+
+      <section id="model" class="content-section card">
+        <h2 class="flex items-center gap-2">
+          <span class="text-2xl">🧠</span> 3D InceptionNet Explained: The Brain
+          of the Detector
+        </h2>
+        <p class="mb-4 text-gray-700 leading-relaxed">
+          This section details the intricate structure of our custom 3D
+          InceptionNet, explaining how it processes video data to learn deepfake
+          patterns. The model is designed to process input tensors of shape
+          <code
+            >(Batch_Size, Channels=3, Depth/Time=20, Height=256,
+            Width=256)</code
+          >, allowing it to capture both spatial and temporal information.
+        </p>
+
+        <h3 class="text-lg font-semibold mb-2 text-gray-800">
+          3.1 <code>my_Conv3d</code> Block: The Foundational Unit
+        </h3>
+        <p class="mb-4 text-gray-700">
+          This is a foundational building block within the network,
+          encapsulating a standard sequence of operations essential for deep
+          learning:
+        </p>
+        <ul class="list-disc list-inside space-y-2 mb-4">
+          <li>
+            <strong><code>nn.Conv3d</code> (3D Convolution):</strong> This acts
+            like a smart filter that slides over our 20-frame video clips.
+            Unlike 2D convolutions that only look for patterns within a single
+            image, 3D convolutions look for patterns not just spatially (across
+            height and width) but also across frames (the temporal dimension).
+            This is crucial for detecting subtle flickering, unnatural
+            movements, or inconsistencies that appear over time in deepfakes.
+          </li>
+          <li>
+            <strong><code>nn.BatchNorm3d</code> (Batch Normalization):</strong>
+            This step stabilizes and accelerates the training process. It
+            normalizes the output of the convolution across the mini-batch,
+            preventing issues like vanishing/exploding gradients and allowing
+            for higher learning rates.
+          </li>
+          <li>
+            <strong
+              ><code>nn.ReLU</code> (Rectified Linear Unit) Activation:</strong
+            >
+            This introduces non-linearity into the network. Without non-linear
+            activations, a neural network would simply be a series of linear
+            transformations, limiting its ability to learn complex and intricate
+            patterns inherent in deepfake manipulations.
+          </li>
+        </ul>
+
+        <h3 class="text-lg font-semibold mb-2 text-gray-800">
+          3.2 <code>inception_block_norm</code> Module: Multi-Scale Feature
+          Learning
+        </h3>
+        <p class="mb-4 text-gray-700">
+          This module is the core innovation of Inception networks, allowing the
+          model to capture features at multiple scales within the same layer.
+          Instead of simply stacking convolutional layers sequentially, it
+          processes the input through *multiple parallel convolutional paths*
+          with different kernel sizes, and a pooling path. This allows the
+          network to "see" features at different resolutions simultaneously. The
+          four parallel branches are:
+        </p>
+        <ul class="list-disc list-inside space-y-2 mb-4">
+          <li>
+            <strong>1x1x1 Convolution Path:</strong> Primarily for
+            dimensionality reduction and feature transformation. It captures
+            point-wise features.
+          </li>
+          <li>
+            <strong>1x1x1 followed by 3x3x3 Convolution Path:</strong> Captures
+            local patterns. The initial 1x1x1 convolution reduces the number of
+            channels, making the subsequent 3x3x3 convolution more
+            computationally efficient.
+          </li>
+          <li>
+            <strong>1x1x1 followed by 5x5x5 Convolution Path:</strong> Similar
+            to the 3x3x3 branch, but with a larger receptive field to capture
+            broader contextual information. The initial 1x1x1 also reduces
+            channels here.
+          </li>
+          <li>
+            <strong
+              >3x3x3 Max Pooling followed by 1x1x1 Convolution Path:</strong
+            >
+            A max-pooling layer reduces spatial dimensions, and the subsequent
+            1x1x1 convolution transforms the pooled features.
+          </li>
+        </ul>
+        <p class="mb-4 text-gray-700">
+          The outputs of these four parallel branches are then **concatenated**
+          along the channel dimension (<code>dim=1</code>). This concatenation
+          creates a much richer, multi-scale feature representation that makes
+          the network more robust to diverse deepfake artifacts, which can
+          manifest at various scales and complexities.
+        </p>
+
+        <h3 class="text-lg font-semibold mb-2 text-gray-800">
+          3.3 <code>inception_net_norm</code> (Main Model): The Complete
+          Architecture
+        </h3>
+        <p class="mb-2 text-gray-700">
+          This is the complete 3D InceptionNet model, orchestrating the flow of
+          data through various layers and modules:
+        </p>
+        <ul class="list-disc list-inside space-y-2">
+          <li>
+            <strong>Initial Layers:</strong> The network begins with initial
+            <code>my_Conv3d</code> layers and <code>MaxPool3d</code> operations.
+            These layers are responsible for extracting low-level features (like
+            edges, textures, basic temporal changes) and performing initial
+            downsampling of the input video sequences.
+          </li>
+          <li>
+            <strong>Inception Stages:</strong> The core of the network consists
+            of multiple stacked <code>inception_block_norm</code> modules (e.g.,
+            <code>ib_3a</code> through <code>ib_5b</code>). As data flows
+            through these stages, the network progressively learns increasingly
+            abstract and powerful representations of the video content,
+            combining features from different scales.
+          </li>
+          <li>
+            <strong>Downsampling:</strong> <code>MaxPool3d</code> layers are
+            strategically interleaved between Inception blocks to further reduce
+            the spatial and temporal dimensions of the feature maps. This helps
+            the network focus on the most salient information and reduces
+            computational load.
+          </li>
+          <li>
+            <strong>Global Average Pooling:</strong> An
+            <code>nn.AvgPool3d</code> layer is used towards the end of the
+            feature extraction pipeline. This layer condenses the spatial
+            information of the final feature maps into a fixed-size feature
+            vector. This prepares the output for the final classification layer,
+            making the network less sensitive to the exact spatial location of
+            features.
+          </li>
+          <li>
+            <strong>Regularization:</strong> An
+            <code>nn.Dropout(p=0.4)</code> layer is included to prevent
+            overfitting. During training, it randomly "turns off" a fraction of
+            neurons (setting their output to zero), forcing the model to learn
+            more robust and distributed features rather than relying too heavily
+            on any single connection. This improves the model's ability to
+            generalize to unseen data.
+          </li>
+          <li>
+            <strong>Classification Head:</strong> The final layer is an
+            <code>nn.Linear(1024, 5)</code>. This fully connected layer takes
+            the learned features (which have 1024 dimensions after pooling and
+            dropout) and outputs 5 scores (logits). Each score corresponds to
+            one of the 5 effective classes for deepfake classification
+            (Deepfakes, Face2Face, FaceShifter, FaceSwap, Original). The highest
+            score indicates the model's predicted class.
+          </li>
+        </ul>
+      </section>
+
+      <section id="training" class="content-section card">
+        <h2 class="flex items-center gap-2">
+          <span class="text-2xl">🏋️</span> Training the Model: The Learning
+          Engine
+        </h2>
+        <p class="mb-4 text-gray-700 leading-relaxed">
+          This section details the practical aspects of training the deep
+          learning model using PyTorch, ensuring efficient and effective
+          learning from the prepared dataset. This is where the AI actively
+          learns from the data we've prepared, an iterative process of trial and
+          error.
+        </p>
+
+        <h3 class="text-lg font-semibold mb-2 text-gray-800">
+          4.1 Device Configuration, Optimizer, and Loss Function
+        </h3>
+        <ul class="list-disc list-inside space-y-2 mb-4">
+          <li>
+            <strong>Device Configuration:</strong>
+            <p class="text-gray-700">
+              The code intelligently determines whether a CUDA-enabled GPU is
+              available (<code>torch.cuda.is_available()</code>) and sets the
+              <code>device</code> accordingly ('cuda' for GPU, 'cpu' for CPU).
+              The entire model is then moved to this selected device
+              (<code>my.to(device)</code>) to leverage GPU acceleration for
+              faster computations, which are essential for deep learning.
+            </p>
+          </li>
+          <li>
+            <strong>Optimizer (The "Coach"):</strong>
+            <p class="text-gray-700">
+              <code>my_optimizer = optim.Adam(my.parameters(), lr=0.0001)</code
+              >. The Adam optimizer is chosen for its adaptive learning rate
+              capabilities, which often leads to faster and more stable
+              convergence compared to simpler optimizers. It's like the coach
+              that tells the AI's brain (its millions of internal "weights") how
+              to adjust itself after each mistake. The learning rate of 0.0001
+              controls the step size for these parameter updates.
+            </p>
+          </li>
+          <li>
+            <strong>Loss Function (The "Error Meter"):</strong>
+            <p class="text-gray-700">
+              <code>loss_func = nn.CrossEntropyLoss()</code>. This is the
+              standard and most appropriate loss function for multi-class
+              classification problems like deepfake detection. It acts as an
+              "error meter," measuring precisely how "wrong" the model's
+              predictions are compared to the true labels. The ultimate goal of
+              training is to continuously minimize this error.
+            </p>
+          </li>
+        </ul>
+
+        <h3 class="text-lg font-semibold mb-2 text-gray-800">
+          4.2 Custom Dataset and DataLoaders
+        </h3>
+        <p class="mb-2 text-gray-700">
+          The data is efficiently fed into the model using custom PyTorch
+          Dataset and DataLoader classes, which are crucial for handling large
+          datasets and optimizing training:
+        </p>
+        <ul class="list-disc list-inside space-y-2 mb-4">
+          <li>
+            <strong><code>my_Dataset</code> Class:</strong>
+            <p class="text-gray-700">
+              This custom class acts as an interface between the large,
+              memory-mapped NumPy arrays (containing image data) and PyTorch's
+              data pipeline. Its <code>__getitem__</code> method is responsible
+              for:
+            </p>
+            <ul class="list-circle list-inside ml-6 mt-1">
+              <li>
+                Loading a specific 20-frame sequence from the memory-mapped
+                array when requested.
+              </li>
+              <li>Converting the NumPy array to a PyTorch tensor.</li>
+              <li>
+                Permuting the dimensions from
+                <code>(Depth/Time, Height, Width, Channels)</code> to PyTorch's
+                expected <code>(Channels, Depth/Time, Height, Width)</code>.
+                This is a critical step for PyTorch compatibility.
+              </li>
+              <li>
+                Converting pixel values to `float32` and normalizing them to the
+                range `[0, 1]`. This standard preprocessing is necessary for
+                neural network computations.
+              </li>
+            </ul>
+          </li>
+          <li>
+            <strong
+              ><code>DataLoader</code> Instances (The "Data Delivery
+              Service"):</strong
+            >
+            <p class="text-gray-700">
+              These wrap the `my_Dataset` instances and handle crucial tasks for
+              efficient training:
+            </p>
+            <ul class="list-circle list-inside ml-6 mt-1">
+              <li>
+                <strong>Batching:</strong> Grouping individual samples into
+                mini-batches (e.g., 36 samples per batch) for efficient GPU
+                processing.
+              </li>
+              <li>
+                <strong>Shuffling:</strong> Randomizing the order of samples in
+                each epoch (`shuffle=True` for training) prevents the model from
+                memorizing data order and improves generalization.
+              </li>
+              <li>
+                <strong>Parallel Loading:</strong> While `num_workers` is set to
+                0 in the provided code (meaning data loading happens in the main
+                process), for larger datasets, setting it to a higher value
+                (e.g., 4) would utilize multiple CPU cores for faster data
+                fetching, preventing the GPU from waiting for data.
+              </li>
+            </ul>
+          </li>
+        </ul>
+
+        <h3 class="text-lg font-semibold mb-2 text-gray-800">
+          5.1 Epoch Loop and Validation Phase
+        </h3>
+        <p class="mb-2 text-gray-700">
+          The training process iterates for a specified number of epochs (e.g.,
+          <code>num_epochs = 2</code> for a quick run). Each epoch involves a
+          training phase followed by a crucial validation phase:
+        </p>
+        <ul class="list-disc list-inside space-y-2">
+          <li>
+            <strong>Training Phase:</strong>
+            <p class="text-gray-700">
+              The model is set to training mode (<code>my.train()</code>),
+              enabling layers like Dropout and updating BatchNorm statistics.
+              For each batch of data:
+            </p>
+            <ol class="list-decimal list-inside ml-6 mt-1">
+              <li>
+                Gradients from the previous batch are cleared
+                (<code>optimizer.zero_grad()</code>).
+              </li>
+              <li>
+                A forward pass is performed (<code>outputs = my(inputs)</code>)
+                to compute predictions.
+              </li>
+              <li>
+                The loss is calculated (<code
+                  >loss = loss_func(outputs, labels)</code
+                >) using the "error meter."
+              </li>
+              <li>
+                A backward pass (<code>loss.backward()</code>) computes
+                gradients, indicating how much each weight contributed to the
+                error.
+              </li>
+              <li>
+                Model parameters are updated (<code>optimizer.step()</code>) by
+                the "coach," getting the AI a tiny bit smarter.
+              </li>
+            </ol>
+            <p class="text-gray-700 mt-2">
+              Training loss and accuracy are tracked and displayed in real-time,
+              providing immediate feedback on learning progress.
+            </p>
+          </li>
+          <li>
+            <strong>Validation Phase:</strong>
+            <p class="text-gray-700">
+              After each training epoch, the model switches to evaluation mode
+              (<code>my.eval()</code>). This disables Dropout and freezes
+              BatchNorm statistics for consistent, deterministic evaluation.
+              Inside a <code>torch.no_grad()</code> block (which saves memory by
+              disabling gradient computation), the model makes predictions on
+              batches from the validation data (which is the test set in this
+              setup). Validation loss and accuracy are calculated without
+              updating model weights. This phase is critical for monitoring the
+              model's generalization performance on unseen data.
+            </p>
+          </li>
+        </ul>
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mt-6">
+          <h4 class="text-base font-semibold text-gray-700 mb-2">
+            Observed Training Progress (2 Epochs):
+          </h4>
+          <ul class="list-disc list-inside space-y-1 text-gray-700">
+            <li>
+              <strong>Epoch 1:</strong>
+              <ul class="list-circle list-inside ml-4">
+                <li>Validation Loss: 0.706681, Validation Accuracy: 0.85578</li>
+                <li>Training Loss: 0.012814, Training Accuracy: 0.99498</li>
+                <li>Epoch Time: 1780.24s</li>
+              </ul>
+            </li>
+            <li>
+              <strong>Epoch 2:</strong>
+              <ul class="list-circle list-inside ml-4">
+                <li>Validation Loss: 0.703218, Validation Accuracy: 0.85609</li>
+                <li>Training Loss: 0.010656, Training Accuracy: 0.99606</li>
+                <li>Epoch Time: 1783.51s</li>
+              </ul>
+            </li>
+          </ul>
+          <p class="text-sm text-gray-600 mt-2">
+            These results indicate that the model rapidly achieved very high
+            accuracy on the training data, while maintaining a consistent and
+            relatively high accuracy on the validation set, suggesting good
+            learning and generalization over these initial epochs.
+          </p>
+        </div>
+      </section>
+
+      <section id="experiment" class="content-section card">
+        <h2 class="flex items-center gap-2">
+          <span class="text-2xl">🧪</span> Conditional Training: An Experiment
+          in Generalization
+        </h2>
+        <p class="mb-4 text-gray-700 leading-relaxed">
+          A key, experimental aspect of this project involves training the
+          deepfake detection model *without* explicitly exposing it to
+          "Original" (real) video samples during the training phase. This unique
+          setup aims to investigate a specific hypothesis regarding the model's
+          learning capabilities and generalization.
+        </p>
+
+        <h3 class="text-lg font-semibold mb-2 text-gray-800">
+          The Big Question and Setup:
+        </h3>
+        <p class="mb-4 text-gray-700">
+          Can an AI learn what a real video looks like *without ever seeing a
+          real video* during its training? Our hypothesis is that if it learns
+          enough about the *characteristics of manipulation* (e.g., subtle
+          flickering, unnatural blending, altered facial expressions common in
+          deepfakes), then anything that *lacks* those specific deepfake
+          characteristics might implicitly be classified as "real."
+        </p>
+        <ul class="list-disc list-inside space-y-2 mb-4">
+          <li>
+            <strong>Training Data Modification:</strong> The primary change for
+            this experiment lies in the filtering of the training data. The
+            <code>Train_indices</code> are specifically modified to exclude both
+            'NeuralTextures' (original class 4) and 'Original' (original class
+            5) videos. This means the model is trained exclusively on samples
+            from the four remaining deepfake categories: Deepfakes, Face2Face,
+            FaceShifter, and FaceSwap.
+          </li>
+          <li>
+            <strong>Test Data Consistency:</strong> Crucially, the
+            <code>Test_indices</code> (and thus the test set) remain unchanged.
+            This means the model will still be evaluated on a dataset that
+            includes 'Original' videos (remapped to class 4), providing a
+            critical test of its generalization to unseen real content.
+          </li>
+        </ul>
+
+        <h3 class="text-lg font-semibold mb-2 text-gray-800">
+          Objective and Implications:
+        </h3>
+        <p class="mb-4 text-gray-700">
+          The core objective is to assess if a model, trained solely on diverse
+          deepfake examples, can learn the inherent characteristics of
+          manipulation itself. If the model, having only seen deepfakes, can
+          still correctly classify real videos (by assigning them to the
+          "Original" class 4) during evaluation, it suggests it has developed a
+          sophisticated understanding of what constitutes a manipulated video,
+          and by extension, what a non-manipulated (real) video should look
+          like. This could lead to more robust detectors against novel or unseen
+          deepfake techniques.
+        </p>
+        <p class="mt-4 text-sm text-gray-600">
+          This experiment provides valuable insights into the model's ability to
+          generalize and learn inherent deepfake characteristics, even when the
+          "real" class is absent from its training exposure.
+        </p>
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mt-6">
+          <h4 class="text-base font-semibold text-gray-700 mb-2">
+            Observed Conditional Training Progress (2 Epochs - Without Original
+            Videos):
+          </h4>
+          <ul class="list-disc list-inside space-y-1 text-gray-700">
+            <li>
+              <strong>Epoch 1:</strong>
+              <ul class="list-circle list-inside ml-4">
+                <li>Validation Loss: 0.864541, Validation Accuracy: 0.84237</li>
+                <li>Training Loss: 0.015885, Training Accuracy: 0.99469</li>
+                <li>Epoch Time: 1429.47s</li>
+              </ul>
+            </li>
+            <li>
+              <strong>Epoch 2:</strong>
+              <ul class="list-circle list-inside ml-4">
+                <li>Validation Loss: 0.853753, Validation Accuracy: 0.84365</li>
+                <li>Training Loss: 0.018956, Training Accuracy: 0.99489</li>
+                <li>Epoch Time: 1431.94s</li>
+              </ul>
+            </li>
+          </ul>
+          <p class="text-sm text-gray-600 mt-2">
+            These results for the conditional training show that even without
+            direct exposure to original videos during training, the model
+            maintains a high training accuracy and a respectable validation
+            accuracy, indicating its ability to learn the deepfake
+            characteristics effectively and generalize to a test set that
+            includes original videos.
+          </p>
+        </div>
+      </section>
+
+      <section id="results" class="content-section card">
+        <h2 class="flex items-center gap-2">
+          <span class="text-2xl">📈</span> Evaluation & Results
+        </h2>
+        <p class="mb-4 text-gray-700 leading-relaxed">
+          Model performance is rigorously assessed using average loss and
+          overall accuracy on both training and test sets. To gain a deeper
+          understanding of classification performance, a confusion matrix is
+          generated and analyzed, showing detailed true vs. predicted class
+          counts.
+        </p>
+        <h3 class="text-lg font-semibold mb-2 text-gray-800">Dataset Sizes:</h3>
+        <ul class="list-disc list-inside space-y-1 mb-4 text-gray-700">
+          <li><strong>Training Data:</strong> 12939 samples</li>
+          <li><strong>Validation Data:</strong> 3134 samples</li>
+          <li><strong>Testing Data:</strong> 3134 samples</li>
+        </ul>
+        <p class="mb-4 text-gray-700">
+          These dataset sizes are crucial for understanding the scale of the
+          training and evaluation. The validation and testing sets, each
+          comprising 3134 samples, provide a robust measure of the model's
+          ability to generalize to unseen data.
+        </p>
+
+        <h3 class="text-lg font-semibold mb-2 text-gray-800">
+          Quantitative Metrics
+        </h3>
+        <p class="mb-2 text-gray-700">
+          After training, the model is set to evaluation mode
+          (<code>my.eval()</code>) and predictions are made on the test dataset
+          (and separately on the training dataset for analysis).
+          <code>torch.no_grad()</code> is used to disable gradient computation,
+          saving memory and speeding up inference. The total loss and overall
+          accuracy are computed across the entire dataset.
+        </p>
+        <p class="mb-4 text-gray-700">
+          These metrics provide a high-level summary of the model's
+          generalization ability (on the test set) and its capacity to fit the
+          training data (on the training set). A very high training accuracy and
+          low training loss indicate the model has learned the training
+          patterns, while strong test performance confirms its ability to
+          generalize to unseen data.
+        </p>
+        <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
+          <h4 class="text-base font-semibold text-gray-700 mb-2">
+            Observed Test Set Performance (Full Training Model):
+          </h4>
+          <p class="text-gray-700">
+            For the test set, the model achieved an Evaluation Loss of
+            <strong>0.657142</strong> and an Accuracy of
+            <strong>0.855137</strong>. This indicates the model's performance on
+            unseen data after being trained with the full dataset (including
+            original videos).
+          </p>
+        </div>
+
+        <h3 class="text-lg font-semibold mb-2 text-gray-800">
+          Confusion Matrix Analysis
+        </h3>
+        <p class="mb-3 text-gray-700">
+          The confusion matrix is a critical tool for multi-class
+          classification, offering a detailed breakdown of model performance
+          beyond simple accuracy. It is a table that visualizes the performance
+          of an algorithm, showing the number of samples for which the true
+          class is known (rows) and the predicted class is known (columns).
+        </p>
+        <ul class="list-disc list-inside space-y-2 mb-4">
+          <li>
+            <strong>Diagonal Elements:</strong> Represent correctly classified
+            instances. For example, the cell where "True: Deepfake" intersects
+            "Predicted: Deepfake" shows the number of Deepfake videos correctly
+            identified as Deepfakes.
+          </li>
+          <li>
+            <strong>Off-Diagonal Elements:</strong> Indicate misclassifications.
+            For example, a high value in the cell where "True: Face2Face"
+            intersects "Predicted: FaceSwap" would mean the model frequently
+            misclassifies Face2Face videos as FaceSwap videos.
+          </li>
+        </ul>
+        <p class="mb-4 text-gray-700">
+          Analyzing the confusion matrix allows for a deep understanding of
+          which specific deepfake types the model might be confusing with each
+          other, or how well it distinguishes real videos from manipulated ones.
+          This detailed insight is invaluable for identifying areas where the
+          model could be improved.
+        </p>
+        <p class="mb-3 text-sm text-gray-600">
+          The following chart is an example visualization of a confusion matrix.
+          It demonstrates how many samples of a true class were predicted as
+          each of the possible classes. Darker cells typically indicate higher
+          counts, highlighting areas where the model performs well or where
+          specific classes are being confused with others.
+        </p>
+        <div class="chart-container">
+          <canvas id="confusionMatrixChart"></canvas>
+        </div>
+        <p class="mt-3 text-xs text-gray-500 text-center">
+          Note: The chart above uses example data to illustrate the
+          visualization. In a real scenario, the data for this chart would be
+          dynamically populated from the model's actual evaluation results on
+          the test set.
+        </p>
+      </section>
+
+      <section id="run" class="content-section card">
+        <h2 class="flex items-center gap-2">
+          <span class="text-2xl">🚀</span> How to Run the Code
+        </h2>
+        <p class="mb-4 text-gray-700 leading-relaxed">
+          To replicate this deepfake detection project and run the code, you
+          would typically follow these steps. The recommended environment is
+          Google Colab, due to its convenient access to GPU resources and
+          pre-installed libraries, simplifying the setup process significantly.
+        </p>
+        <ol class="list-decimal list-inside space-y-4">
+          <li>
+            <strong>Mount Google Drive:</strong>
+            <p class="mb-1 text-gray-700">
+              Your dataset files (e.g., large <code>.npy</code> arrays) and any
+              saved model checkpoints (<code>.pth</code> files) are expected to
+              reside on Google Drive. The very first step in your Colab notebook
+              is to mount your Drive, making these files accessible to the Colab
+              environment:
+            </p>
+            <pre><code class="language-python">from google.colab import drive
+drive.mount('/content/drive')</code></pre>
+          </li>
+          <li>
+            <strong>Verify Dataset Paths:</strong>
+            <p class="mb-1 text-gray-700">
+              Before running any data loading code, ensure that all file paths
+              specified (e.g., <code>extracted_frames_path</code>, and the paths
+              to your pre-processed <code>sample_array.npy</code>,
+              <code>label.npy</code>, <code>test_sample.npy</code>,
+              <code>test_label.npy</code>) correctly point to their respective
+              locations within your mounted Google Drive. Incorrect paths are a
+              common source of errors.
+            </p>
+          </li>
+          <li>
+            <strong>Install Necessary Libraries:</strong>
+            <p class="mb-1 text-gray-700">
+              Confirm that all required Python libraries are installed. Google
+              Colab typically comes with most deep learning libraries
+              pre-installed, but it's good practice to ensure all dependencies
+              are met. You might run a cell like this:
+            </p>
+            <pre><code class="language-python">!pip install torch numpy pandas opencv-python scikit-image scikit-learn matplotlib seaborn</code></pre>
+          </li>
+          <li>
+            <strong>Execute Code Blocks Sequentially:</strong>
+            <p class="mb-1 text-gray-700">
+              The project's code is designed to be executed in a specific
+              logical order, reflecting the deep learning pipeline. Following
+              this sequence is crucial to ensure all dependencies are met and
+              the project runs smoothly without errors:
+            </p>
+            <ul class="list-disc list-inside ml-6 mt-2 space-y-2">
+              <li>
+                <strong>Imports:</strong> Begin by importing all necessary
+                Python libraries at the top of your script or notebook.
+              </li>
+              <li>
+                <strong>Face Extraction & Metadata Functions:</strong> If you
+                are starting from raw video files and need to regenerate your
+                dataset, execute the face extraction functions
+                (<code>og_video_to_face</code>, <code>fake_video_to_face</code>)
+                and the metadata consolidation functions
+                (<code>sample_df</code>, <code>type_sample_df</code>,
+                <code>all_sample_df</code>) to generate your `lookup_table.csv`
+                and subsequently your `sample.npy`/`label.npy` files. If these
+                are already generated, you can skip this step.
+              </li>
+              <li>
+                <strong>Memory Map Loading:</strong> Load your pre-processed
+                `sample_array.npy`, `label.npy`, `test_sample.npy`, and
+                `test_label.npy` files using NumPy's memory mapping. This makes
+                the large datasets accessible.
+              </li>
+              <li>
+                <strong>Data Filtering:</strong> Apply the necessary filtering
+                to your training and test indices (e.g., excluding
+                NeuralTextures, or excluding Original videos for the conditional
+                training experiment).
+              </li>
+              <li>
+                <strong>Model Architecture Definition:</strong> Define the
+                PyTorch classes for your 3D InceptionNet model
+                (<code>my_Conv3d</code>, <code>inception_block_norm</code>,
+                <code>inception_net_norm</code>).
+              </li>
+              <li>
+                <strong>Model Instantiation & Loading Weights:</strong> Create
+                an instance of your model and load any pre-trained or previously
+                saved weights using
+                <code>my.load_state_dict(torch.load(model_path))</code>. This
+                allows you to resume training or use a trained model directly.
+              </li>
+              <li>
+                <strong>Optimizer & Loss Definition:</strong> Define your chosen
+                optimizer (e.g., `optim.Adam`) and loss function
+                (<code>nn.CrossEntropyLoss</code>) for the training process.
+              </li>
+              <li>
+                <strong>Dataset & DataLoader Setup:</strong> Instantiate your
+                `my_Dataset` classes for training and testing, and then create
+                the `DataLoader` instances. These will handle efficient batching
+                and shuffling of your data during training and evaluation.
+              </li>
+              <li>
+                <strong>GPU Cache Clearing:</strong> It's good practice to call
+                <code>torch.cuda.empty_cache()</code> before starting intensive
+                GPU operations like training to free up any unused GPU memory.
+              </li>
+              <li>
+                <strong>Training Loop:</strong> Execute the main training loop,
+                which iteratively trains the model over multiple epochs,
+                performing forward and backward passes.
+              </li>
+              <li>
+                <strong>Model Saving:</strong> After training, save your trained
+                model's parameters using
+                <code>torch.save(my.state_dict(), model_path)</code> to persist
+                your work.
+              </li>
+              <li>
+                <strong>Evaluation Loop & Confusion Matrix Analysis:</strong>
+                Run the evaluation code to assess your model's performance on
+                the test set. This will compute metrics and generate data for a
+                confusion matrix, which you can then analyze to understand
+                classification performance.
+              </li>
+            </ul>
+          </li>
+        </ol>
+      </section>
+    </main>
+
+    <footer class="text-center py-8 text-gray-500 text-sm">
+      <p>
+        Deepfake Detection Project SPA. Content derived from project
+        documentation.
+      </p>
+    </footer>
+
+    <script>
+      // --- Navigation Logic ---
+      const navLinks = document.querySelectorAll(
+        'nav a[href^="#"], #mobile-menu a[href^="#"]'
+      );
+      const contentSections = document.querySelectorAll(".content-section");
+      const mobileMenuButton = document.getElementById("mobile-menu-button");
+      const mobileMenu = document.getElementById("mobile-menu");
+
+      function setActiveSection(hash) {
+        contentSections.forEach((section) => {
+          if ("#" + section.id === hash) {
+            section.classList.add("active");
+          } else {
+            section.classList.remove("active");
+          }
+        });
+
+        navLinks.forEach((link) => {
+          if (link.getAttribute("href") === hash) {
+            link.classList.add("active");
+          } else {
+            link.classList.remove("active");
+          }
+        });
+        // Close mobile menu after navigation
+        if (!mobileMenu.classList.contains("hidden")) {
+          mobileMenu.classList.add("hidden");
+        }
+      }
+
+      navLinks.forEach((link) => {
+        link.addEventListener("click", (event) => {
+          // event.preventDefault(); // Only if you want to prevent default scroll, but hash change is good
+          const targetId = link.getAttribute("href");
+          setActiveSection(targetId);
+          // For smoother scrolling, you might add:
+          // document.querySelector(targetId).scrollIntoView({ behavior: 'smooth' });
+        });
+      });
+
+      mobileMenuButton.addEventListener("click", () => {
+        mobileMenu.classList.toggle("hidden");
+      });
+
+      // Initial section activation based on URL hash or default
+      if (window.location.hash) {
+        setActiveSection(window.location.hash);
+      } else {
+        setActiveSection("#overview"); // Default to overview
+      }
+      // Listen to hash changes (e.g. browser back/forward buttons)
+      window.addEventListener("hashchange", () => {
+        setActiveSection(window.location.hash);
+      });
+
+      // --- Chart.js Confusion Matrix Example ---
+      // This is example data. In a real scenario, this data would come from the model evaluation.
+      const classNames = [
+        "Deepfake",
+        "Face2Face",
+        "FaceShifter",
+        "FaceSwap",
+        "Original",
+      ];
+      const confusionMatrixData = [
+        // Predicted: DF, F2F, FS, FS2, OG
+        [402, 52, 44, 35, 5], // True: Deepfake
+        [48, 554, 27, 50, 7], // True: Face2Face
+        [21, 37, 423, 19, 1], // True: FaceShifter
+        [22, 39, 30, 602, 4], // True: FaceSwap
+        [1, 2, 3, 7, 699], // True: Original
+      ];
+
+      const datasets = [];
+      const chartColors = [
+        "rgba(255, 99, 132, 0.7)", // Red
+        "rgba(54, 162, 235, 0.7)", // Blue
+        "rgba(255, 206, 86, 0.7)", // Yellow
+        "rgba(75, 192, 192, 0.7)", // Green
+        "rgba(153, 102, 255, 0.7)", // Purple
+      ];
+
+      // Create a dataset for each PREDICTED class, grouped by TRUE class
+      // This structure helps in creating grouped bar charts
+      for (let i = 0; i < classNames.length; i++) {
+        // For each predicted class
+        datasets.push({
+          label: `Predicted: ${classNames[i]}`,
+          data: confusionMatrixData.map((row) => row[i]), // Get the i-th element from each true class row
+          backgroundColor: chartColors[i % chartColors.length],
+          borderColor: chartColors[i % chartColors.length].replace("0.7", "1"),
+          borderWidth: 1,
+        });
+      }
+
+      const ctx = document.getElementById("confusionMatrixChart");
+      if (ctx) {
+        new Chart(ctx, {
+          type: "bar",
+          data: {
+            labels: classNames.map((name) => `True: ${name}`), // True classes on X-axis (groups)
+            datasets: datasets,
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              title: {
+                display: true,
+                text: "Confusion Matrix (Example Values)",
+                font: { size: 16 },
+              },
+              tooltip: {
+                callbacks: {
+                  label: function (context) {
+                    let label = context.dataset.label || "";
+                    if (label) {
+                      label += ": ";
+                    }
+                    if (context.parsed.y !== null) {
+                      label += context.parsed.y + " samples";
+                    }
+                    return label;
+                  },
+                },
+              },
+            },
+            scales: {
+              x: {
+                title: {
+                  display: true,
+                  text: "True Classes",
+                },
+                stacked: false, // For grouped bars
+              },
+              y: {
+                beginAtZero: true,
+                title: {
+                  display: true,
+                  text: "Number of Samples",
+                },
+                stacked: false, // For grouped bars
+              },
+            },
+            interaction: {
+              mode: "index", // Show tooltips for all bars in a group
+              intersect: false,
+            },
+          },
+        });
+      } else {
+        console.error("Canvas element for chart not found.");
+      }
+    </script>
+  </body>
+</html>

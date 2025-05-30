@@ -7,88 +7,75 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
-    <style>
-  body {
-    font-family: "Inter", sans-serif;
-    background-color: #000000; /* Black background */
-    color: #ffffff; /* White text */
-  }
-
-  .nav-link {
-    transition: all 0.3s ease;
-    color: #f97316; /* orange-500 */
-  }
-  .nav-link:hover {
-    color: #fdba74; /* lighter orange */
-  }
-  .nav-link.active {
-    border-bottom-width: 2px;
-    border-color: #f97316; /* orange-500 */
-    color: #f97316;
-    font-weight: 600;
-  }
-
-  .content-section {
-    display: none;
-  }
-  .content-section.active {
-    display: block;
-  }
-
-  .chart-container {
-    position: relative;
-    width: 100%;
-    max-width: 768px;
-    margin-left: auto;
-    margin-right: auto;
-    height: 320px;
-    max-height: 400px;
-  }
-  @media (min-width: 768px) {
-    .chart-container {
-      height: 400px;
-    }
-  }
-
-  h1, h2, h3, h4 {
-    color: #ffffff; /* White text for headings */
-  }
-
-  .card {
-    background-color: #1f2937; /* dark gray-800 */
-    border-radius: 0.5rem;
-    padding: 1.5rem;
-    box-shadow: 0 4px 6px -1px rgba(255, 255, 255, 0.1),
-                0 2px 4px -1px rgba(255, 255, 255, 0.06);
-    margin-bottom: 1.5rem;
-  }
-
-  code {
-    background-color: #374151; /* gray-700 */
-    padding: 0.125rem 0.25rem;
-    border-radius: 0.25rem;
-    font-family: monospace;
-    color: #f87171; /* red-400 */
-  }
-
-  pre code {
-    display: block;
-    padding: 1rem;
-    overflow-x: auto;
-  }
-
-  a {
-    color: #f97316; /* orange-500 for all links */
-  }
-  a:hover {
-    color: #fdba74;
-  }
-
-  footer {
-    background-color: #111827; /* darker gray */
-    color: #9ca3af; /* gray-400 */
-  }
-</style>
+   <style>Add commentMore actions
+      body {
+        font-family: "Inter", sans-serif;
+      }
+      .nav-link {
+        transition: all 0.3s ease;
+      }
+      .nav-link.active {
+        border-bottom-width: 2px;
+        border-color: #2563eb; /* blue-600 */
+        color: #2563eb; /* blue-600 */
+        font-weight: 600;
+      }
+      .content-section {
+        display: none;
+      }
+      .content-section.active {
+        display: block;
+      }
+      /* Chart container specific styling for responsiveness */
+      .chart-container {
+        position: relative;
+        width: 100%;
+        max-width: 768px; /* md:max-w-3xl or similar */
+        margin-left: auto;
+        margin-right: auto;
+        height: 320px; /* sm:h-80 */
+        max-height: 400px; /* max-h-96 */
+      }
+      @media (min-width: 768px) {
+        /* md breakpoint */
+        .chart-container {
+          height: 400px; /* md:h-96 */
+        }
+      }
+      h2 {
+        font-size: 1.75rem; /* text-2xl or text-3xl */
+        font-weight: 600;
+        margin-bottom: 1rem;
+        color: #1f2937; /* gray-800 */
+      }
+      h3 {
+        font-size: 1.25rem; /* text-xl */
+        font-weight: 600;
+        margin-top: 1.5rem;
+        margin-bottom: 0.75rem;
+        color: #374151; /* gray-700 */
+      }
+      .card {
+        background-color: white;
+        border-radius: 0.5rem; /* rounded-lg */
+        padding: 1.5rem; /* p-6 */
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+          0 2px 4px -1px rgba(0, 0, 0, 0.06); /* shadow-md */
+        margin-bottom: 1.5rem;
+      }
+      code {
+        background-color: #f3f4f6; /* gray-100 */
+        padding: 0.125rem 0.25rem; /* px-1 py-0.5 */
+        border-radius: 0.25rem; /* rounded-sm */
+        font-family: monospace;
+        color: #dc2626; /* red-600 */
+      }
+      pre code {
+        display: block;
+        padding: 1rem;
+        overflow-x: auto;
+      }
+    </style>
 
   </head>
   <body class="bg-gray-100 text-gray-800 antialiased">

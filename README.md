@@ -1,3 +1,6 @@
+Deepfakes are AI-generated synthetic media that manipulate visual or auditory content by replacing a person’s identity with another, often using deep learning models like GANs and autoencoders. This technology challenges the integrity of digital media, raising concerns in security, misinformation, and content authenticity.
+
+In this project, we explored deepfake detection using advanced deep learning techniques. The project code, along with detailed technical contributions, is provided below.
 
 code is available at https://colab.research.google.com/drive/1-y2STlBa0v4GE8Eep1jGf-zxIimQ0-Sp#scrollTo=MCA7ed62GxtV
 

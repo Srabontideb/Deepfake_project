@@ -29,5 +29,5 @@ code is available at https://colab.research.google.com/drive/1-y2STlBa0v4GE8Eep1
 • Identified biases and challenges within the dataset.
 
 Model Architechture:
-![Model](https://github.com/Srabontideb/Deepfake_project/blob/863cc59cf9ad38e02764b3dff62c14d7a3b082fe/InceptionNet.png)
+![Model](https://github.com/Srabontideb/Deepfake_project/blob/e4d9aba62379c5810c6e071e4edce175d6ab7fe9/Model.png)
 

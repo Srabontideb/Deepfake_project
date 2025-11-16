@@ -1,6 +1,6 @@
 A deep learning-based system for detecting and classifying deepfake videos using 3D Convolutional Neural Networks with Inception architecture.
 
-##### Key Features:
+### Key Features:
 - Multi-class Classification: Distinguishes between 6 video types.
 - Temporal Analysis: Processes 20-frame sequences to detect cross-frame inconsistencies.
 - 3D Inception Architecture: Multi-scale feature extraction for comprehensive artifact detection.
